@@ -16,11 +16,12 @@ jobs:
           - {os: ubuntu-latest, crystal: latest}
           - {os: ubuntu-latest, crystal: nightly}
           - {os: macos-latest}
-          - {os: windows-latest}
+          - {os: windows-latest, shards: false}
     runs-on: ${{matrix.os}}
     steps:
       - uses: crystal-lang/install-crystal@v1
         with:
           crystal: ${{matrix.crystal}}
+          shards: ${{matrix.shards}}
       - uses: actions/checkout@v2
       - run: crystal spec
