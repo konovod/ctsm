@@ -16,6 +16,8 @@ class TestMachine < CTSM::Machine
   end
   transition(wait, First, to: First)
   transition(wait, Second, to: Second)
+  transition(wait, WrongCondition, to: Second) # should produce warning
+  transition(breaks, First, to: DeadEnd)       # won't produce warning as there is `reset`
 
   property count_enters = 0
   property count_leaves = 0
@@ -37,6 +39,7 @@ class TestMachine2 < CTSM::Machine
   transition(flip1, First, to: Second)
   transition(flip2, Second, to: First)
   transition(reset, Second, First, to: First)
+  transition(wait, First, to: DeadEnd) # should produce warning
 end
 
 describe CTSM do
