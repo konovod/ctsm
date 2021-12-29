@@ -14,6 +14,7 @@ class TestMachine < CTSM::Machine
   transition(reset, Second, First, to: First) do
     @was_reset = true
   end
+  transition(wait, First, to: First)
 end
 
 class TestMachine2 < CTSM::Machine
@@ -69,6 +70,16 @@ describe CTSM do
     machine.state.should eq TestMachine::State::First
     machine.flip_possible = false
     machine.flip
+    machine.state.should eq TestMachine::State::First
+  end
+
+  it "can transition to same state" do
+    machine = TestMachine.new
+    machine.startup
+    machine.state.should eq TestMachine::State::First
+    machine.wait
+    machine.state.should eq TestMachine::State::First
+    machine.wait
     machine.state.should eq TestMachine::State::First
   end
 end
