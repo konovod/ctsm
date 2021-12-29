@@ -110,6 +110,8 @@ module CTSM
       # gather list of states
       {% states_found = {} of String => Bool %}
       {% reachable = {} of String => Bool %}
+      {% leavable = {} of String => Bool %}
+      {% all_leavable = false %}
       {% transitions = {} of String => Bool %}
       {% triggers_before = {} of String => String %}
       {% triggers_after = {} of String => String %}
@@ -123,9 +125,12 @@ module CTSM
           {% if name_parts[2] == "fromall" %}
             {% states_found[name_parts[4]] = true %}
             {% reachable[name_parts[4]] = true %}
+            {% all_leavable = true %}
           {% else %}  
             {% states_found[name_parts[3]] = true %}
+            {% states_found[name_parts[5]] = true %}
             {% reachable[name_parts[5]] = true %}
+            {% leavable[name_parts[3]] = true %}
           {% end %}
         {% elsif name_parts[0] == "internalinitial" %}  
           {% reachable[name_parts[1]] = true %}
@@ -142,6 +147,9 @@ module CTSM
       {% for state in states_found.keys %}
         {% if !reachable[state] %}
           {% puts " WARNING: State `#{@type.name}::State::#{state.id}` is not reachable with any transition" %}
+        {% end %}
+        {% if !all_leavable && !leavable[state] %}
+          {% puts " WARNING: State `#{@type.name}::State::#{state.id}` has no possible transitions" %}
         {% end %}
       {% end %}
       {% for state in states_found.keys %}
