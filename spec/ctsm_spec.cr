@@ -24,52 +24,51 @@ class TestMachine2 < CTSM::Machine
 end
 
 describe CTSM do
-  # TODO: Write tests
-  # it "state machine can be created" do
-  #   machine = TestMachine.new
-  #   machine.state.should eq TestMachine::State::Initial
-  # end
-  # it "transitions are possible" do
-  #   machine = TestMachine.new
-  #   machine.startup
-  #   machine.state.should eq TestMachine::State::First
-  #   expect_raises(CTSM::TransitionImpossible) { machine.startup }
-  # end
+  it "state machine can be created" do
+    machine = TestMachine.new
+    machine.state.should eq TestMachine::State::Initial
+  end
+  it "transitions are possible" do
+    machine = TestMachine.new
+    machine.startup
+    machine.state.should eq TestMachine::State::First
+    expect_raises(CTSM::TransitionImpossible) { machine.startup }
+  end
 
-  # it "transitions block is called" do
-  #   machine = TestMachine.new
-  #   machine.startup
-  #   machine.was_reset.should eq false
-  #   machine.reset
-  #   machine.was_reset.should eq true
-  #   machine.reset
-  #   machine.was_reset.should eq true
-  # end
+  it "transitions block is called" do
+    machine = TestMachine.new
+    machine.startup
+    machine.was_reset.should eq false
+    machine.reset
+    machine.was_reset.should eq true
+    machine.reset
+    machine.was_reset.should eq true
+  end
 
-  # it "different machines do not interact" do
-  #   m1 = TestMachine.new
-  #   m2 = TestMachine2.new
-  #   m1.state.should eq TestMachine::State::Initial
-  #   m2.state.should eq TestMachine::State::First
-  #   m1.startup
-  #   m2.flip1
-  #   m1.state.should eq TestMachine::State::First
-  #   m2.state.should eq TestMachine::State::Second
-  # end
+  it "different machines do not interact" do
+    m1 = TestMachine.new
+    m2 = TestMachine2.new
+    m1.state.should eq TestMachine::State::Initial
+    m2.state.should eq TestMachine2::State::First
+    m1.startup
+    m2.flip1
+    m1.state.should eq TestMachine::State::First
+    m2.state.should eq TestMachine2::State::Second
+  end
 
-  # pending "transitions check is called" do
-  #   machine = TestMachine.new
-  #   machine.startup
-  #   machine.state.should eq TestMachine::State::First
-  #   machine.flip
-  #   machine.state.should eq TestMachine::State::First
-  #   machine.flip_possible = true
-  #   machine.flip
-  #   machine.state.should eq TestMachine::State::Second
-  #   machine.flip
-  #   machine.state.should eq TestMachine::State::First
-  #   machine.flip_possible = true
-  #   machine.flip
-  #   machine.state.should eq TestMachine::State::First
-  # end
+  it "transitions check is called" do
+    machine = TestMachine.new
+    machine.startup
+    machine.state.should eq TestMachine::State::First
+    machine.flip
+    machine.state.should eq TestMachine::State::First
+    machine.flip_possible = true
+    machine.flip
+    machine.state.should eq TestMachine::State::Second
+    machine.flip
+    machine.state.should eq TestMachine::State::First
+    machine.flip_possible = false
+    machine.flip
+    machine.state.should eq TestMachine::State::First
+  end
 end
