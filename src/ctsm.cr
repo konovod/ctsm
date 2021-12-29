@@ -8,8 +8,10 @@ module CTSM
       {% if @type.methods.map(&.name).includes? "internalinitial_state_defined" %}
         {% raise "initial_state already defined" %}
       {% end %}
+      @[AlwaysInline]       
       private def internalinitialstatedefined
       end
+      @[AlwaysInline]       
       private def internalinitial_{{x}}
       end
     end
@@ -17,14 +19,23 @@ module CTSM
     macro transition(amethod, *afrom, to, &block)
       {% if afrom.size > 0 %}
         {% for from_state in afrom %}
+          @[AlwaysInline]       
           private def internaltransition_{{amethod}}_from_{{from_state}}_to_{{to}}
+            {% unless from_state == to %}
+            internaltrigger_to_{{to}}
             @state = State::{{to}}
+            internaltrigger_from_{{from_state}}
+            {% end %}
             {{yield}} 
           end
         {% end %}
       {% else %} 
+        @[AlwaysInline]
         private def internaltransition_{{amethod}}_fromall_to_{{to}}
+          internaltrigger_to_{{to}}
+          old_state = @state
           @state = State::{{to}}
+          internaltrigger_fromany(old_state)
           {{yield}} 
         end
       {% end %}
@@ -33,25 +44,61 @@ module CTSM
     macro transition_if(amethod, *afrom, to, &block)
       {% if afrom.size > 0 %}
         {% for from_state in afrom %}
+          @[AlwaysInline]
           private def internaltransition_{{amethod}}_from_{{from_state}}_to_{{to}}
             {% if block %}
               return unless {{yield}}
             {% else %}
               {% raise "block must be present in `transition_if`" %}
             {% end %}
-            @state = State::{{to}}
+            {% unless from_state == to %}
+              internaltrigger_to_{{to}}
+              @state = State::{{to}}
+              internaltrigger_from_{{from_state}}
+            {% end %}
           end
         {% end %}
       {% else %} 
+      @[AlwaysInline]
         private def internaltransition_{{amethod}}_fromall_to_{{to}}
           {% if block %}
             return unless {{yield}}
           {% else %}
             {% raise "block must be present in `transition_if`" %}
           {% end %}
+          old_state = @state
           @state = State::{{to}}
+          internaltrigger_fromany(old_state)
         end
       {% end %}
+    end
+
+    macro before(state, &block)
+      {% if @type.methods.map(&.name.stringify).includes? "internaltrigger_to_#{state}" %}
+        {% raise "trigger before #{state} is defined more than once" %}
+      {% end %}
+      @[AlwaysInline]
+      private def internaltrigger_to_{{state}}
+        {% if block %}
+          {{yield}}
+        {% else %}
+          {% raise "block must be present in `before`" %}
+        {% end %}
+      end
+    end
+
+    macro after(state, &block)
+      {% if @type.methods.map(&.name).includes? "internaltrigger_from_#{state}" %}
+        {% raise "trigger after #{state} is defined more than once" %}
+      {% end %}
+      @[AlwaysInline]
+      private def internaltrigger_from_{{state}}
+        {% if block %}
+          {{yield}}
+        {% else %}
+          {% raise "block must be present in `after`" %}
+        {% end %}
+      end
     end
 
     macro inherited
@@ -64,13 +111,15 @@ module CTSM
       {% states_found = {} of String => Bool %}
       {% reachable = {} of String => Bool %}
       {% transitions = {} of String => Bool %}
+      {% triggers_before = {} of String => String %}
+      {% triggers_after = {} of String => String %}
       {% initial_state = "" %}
       {% for meth in @type.methods %}
         {% name_parts = meth.name.split('_') %}
         {% if name_parts[0] == "internaltransition" %}
           {% transitions[name_parts[1]] = true %}
-          # transitioninternal_method_from_fromstate_to_tostate
-          # transitioninternal_method_fromall_to_tostate
+          # internaltransition_method_from_fromstate_to_tostate
+          # internaltransition_method_fromall_to_tostate
           {% if name_parts[2] == "fromall" %}
             {% states_found[name_parts[4]] = true %}
             {% reachable[name_parts[4]] = true %}
@@ -81,13 +130,49 @@ module CTSM
         {% elsif name_parts[0] == "internalinitial" %}  
           {% reachable[name_parts[1]] = true %}
           {% initial_state = name_parts[1] %}
+        {% elsif name_parts[0] == "internaltrigger" %}  
+          {% states_found[name_parts[2]] = true %}
+          {% if name_parts[1] == "to" %}
+            {% triggers_before[name_parts[2]] = meth.name %}
+          {% else %}
+            {% triggers_after[name_parts[2]] = meth.name %}
+          {% end %}
         {% end %}
       {% end %}
       {% for state in states_found.keys %}
         {% if !reachable[state] %}
-          {% puts " WARNING: State #{state} is not reachable with any transition" %}
+          {% puts " WARNING: State `#{@type.name}::State::#{state.id}` is not reachable with any transition" %}
         {% end %}
       {% end %}
+      {% for state in states_found.keys %}
+        {% if !triggers_before[state] %}
+          @[AlwaysInline]
+          private def internaltrigger_to_{{state.id}}
+          end
+        {% end %}
+        {% if !triggers_after[state] %}
+          @[AlwaysInline]
+          private def internaltrigger_from_{{state.id}}
+          end
+        {% end %}
+      {% end %}
+      @[AlwaysInline]
+      private def internaltrigger_fromany(old_state)
+      {% if triggers_after.size == 0 %}
+      {% else %}
+        case old_state
+          {% for astate, trigger in triggers_after %}
+            when State::{{astate.id}}
+              {{trigger.id}}
+          {% end %}
+        else
+          # do nothing  
+        end
+      {% end %}
+    end
+
+
+
       {% states = {} of String => Int32 %}
       {% states[initial_state] = 0 %}
       {% n = 1 %}
@@ -114,8 +199,8 @@ module CTSM
         {% for meth in @type.methods %}
           {% name_parts = meth.name.split('_') %}
           {% if name_parts[0] == "internaltransition" && name_parts[1] == transition %}
-            # transitioninternal_method_from_fromstate_to_tostate
-            # transitioninternal_method_fromall_to_tostate
+            # internaltransition_method_from_fromstate_to_tostate
+            # internaltransition_method_fromall_to_tostate
             {% if name_parts[2] == "fromall" %}
               {% target = name_parts[4] %}
               {% if multi_defined || list.size > 0 %}
@@ -123,7 +208,7 @@ module CTSM
               {% else %}
                 {% multi_defined = true %}
                 def {{transition.id}}
-                  transitioninternal_method_fromall_to_{{target}}
+                  internaltransition_{{transition.id}}_fromall_to_{{target.id}}
                 end
               {% end %}
           {% else %}  
@@ -136,22 +221,23 @@ module CTSM
               {% end %}
             {% end %}
           {% end %}
-          {% if !multi_defined %}
-            {% begin %}
-            def {{transition.id}}
-              case @state
-                {% for afrom, meth_name in list %}
-              when State::{{afrom.id}}
-                {{meth_name.id}}
-                {% end %}
-              else 
-                raise CTSM::TransitionImpossible.new("#{self.class}: Transition `{{transition.id}}` is not possible for state #{@state}")
-              end
-            end
-            {% end %}
+        {% end %}
+        {% if !multi_defined %}
+        {% begin %}
+        def {{transition.id}}
+          case @state
+          {% for afrom, meth_name in list %}
+            when State::{{afrom.id}}
+            {{meth_name.id}}
           {% end %}
+          else 
+            raise CTSM::TransitionImpossible.new("#{self.class}: Transition `{{transition.id}}` is not possible for state #{@state}")
+          end
+        end
         {% end %}
       {% end %}
+      {% end %}
+      #{ debug }
     end     
     {% end %}
     end

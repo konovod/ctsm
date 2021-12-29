@@ -11,10 +11,25 @@ class TestMachine < CTSM::Machine
   transition_if(flip, Second, to: First) do
     @flip_possible
   end
-  transition(reset, Second, First, to: First) do
+  transition(reset, to: First) do
     @was_reset = true
   end
   transition(wait, First, to: First)
+  transition(wait, Second, to: Second)
+
+  property count_enters = 0
+  property count_leaves = 0
+  property from_state = State::Initial
+  property to_state = State::Initial
+
+  before Second do
+    @count_enters += 1
+    @from_state = @state
+  end
+  after Second do
+    @count_leaves += 1
+    @to_state = @state
+  end
 end
 
 class TestMachine2 < CTSM::Machine
@@ -81,5 +96,33 @@ describe CTSM do
     machine.state.should eq TestMachine::State::First
     machine.wait
     machine.state.should eq TestMachine::State::First
+  end
+
+  it "triggers on entering and leaving state are called" do
+    machine = TestMachine.new
+    machine.startup
+    machine.count_enters.should eq 0
+    machine.count_leaves.should eq 0
+    machine.flip
+    machine.count_enters.should eq 0
+    machine.count_leaves.should eq 0
+    machine.flip_possible = true
+    machine.flip
+    machine.count_enters.should eq 1
+    machine.count_leaves.should eq 0
+    machine.from_state.should eq TestMachine::State::First
+    machine.wait
+    machine.count_enters.should eq 1
+    machine.count_leaves.should eq 0
+    machine.flip
+    machine.count_enters.should eq 1
+    machine.count_leaves.should eq 1
+    machine.to_state.should eq TestMachine::State::First
+    machine.flip
+    machine.count_enters.should eq 2
+    machine.count_leaves.should eq 1
+    machine.reset
+    machine.count_enters.should eq 2
+    machine.count_leaves.should eq 2
   end
 end
