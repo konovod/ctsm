@@ -1,6 +1,7 @@
 <a href="https://github.com/konovod/ctsm/actions/workflows/ci.yml">
   <img src="https://github.com/konovod/ctsm/actions/workflows/ci.yml/badge.svg" alt="Build Status">
 </a>
+
 # ctsm
 
 This shard provides Finite State Machines (FSMs) that is type-safe (states are Enum instead of Symbol, transitions are methods, so typo will result in compilation error instead of runtime exception) and DSL for states definition (no need to declare all states, just define all transitions).
