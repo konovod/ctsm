@@ -7,10 +7,12 @@ module CTSM
     macro initial_state(x)
     end
 
-    macro transition(method, afrom, ato, &)
+    macro transition(method, *afrom, to, &)
       def {{method}}
-        raise CTSM::TransitionImpossible.new("#{self.class}: Transition {{method}} impossible for state #{@state}") unless @state == State::{{afrom}}
-        @state = State::{{ato}}
+        froms = {{afrom.map { |x| ("State::#{x}").id }}}
+        raise CTSM::TransitionImpossible.new("#{self.class}: Transition {{method}} impossible for state #{@state}") unless froms.includes? @state
+        @state = State::{{to}}
+        {{yield}}
       end
     end
 
