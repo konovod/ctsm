@@ -12,7 +12,7 @@ module CTSM
       private def internalinitialstatedefined
       end
       @[AlwaysInline]       
-      private def internalinitial_{{x}}
+      private def internalinitial___{{x}}
       end
     end
 
@@ -20,47 +20,62 @@ module CTSM
       {% if afrom.size > 0 %}
         {% for from_state in afrom %}
           @[AlwaysInline]       
-          private def internaltransition_{{amethod}}_from_{{from_state}}_to_{{to}}
+          private def internaltransition___{{amethod}}___from___{{from_state}}___to___{{to}}
             {% unless from_state == to %}
-            internaltrigger_to_{{to}}
+            internaltrigger___to___{{to}}
             @state = State::{{to}}
-            internaltrigger_from_{{from_state}}
+            internaltrigger___from___{{from_state}}
             {% end %}
             {{yield}} 
           end
         {% end %}
       {% else %} 
         @[AlwaysInline]
-        private def internaltransition_{{amethod}}_fromall_to_{{to}}
-          internaltrigger_to_{{to}}
+        private def internaltransition___{{amethod}}___fromall___to___{{to}}
+          internaltrigger___to___{{to}}
           old_state = @state
           @state = State::{{to}}
-          internaltrigger_fromany(old_state)
+          internaltrigger___fromany(old_state)
           {{yield}} 
         end
       {% end %}
+    end
+
+    macro bench_transition(n, amethod, from_state, to)
+      {% for i in 1..n %}
+      @[AlwaysInline]       
+      private def internaltransition___{{amethod}}{{i}}___from___{{from_state}}___to___{{to}}{{i}}
+        {% unless from_state == to %}
+        internaltrigger___to___{{to}}{{i}}
+        @state = State::{{to}}{{i}}
+        internaltrigger___from___{{from_state}}
+        {% end %}
+        {{yield}} 
+      end
+    {% end %}
+
     end
 
     macro transition_if(amethod, *afrom, to, &block)
       {% if afrom.size > 0 %}
         {% for from_state in afrom %}
           @[AlwaysInline]
-          private def internaltransition_{{amethod}}_from_{{from_state}}_to_{{to}}
+          private def internaltransition___{{amethod}}___from___{{from_state}}___to___{{to}}
             {% if block %}
               return unless {{yield}}
             {% else %}
               {% raise "block must be present in `transition_if`" %}
             {% end %}
             {% unless from_state == to %}
-              internaltrigger_to_{{to}}
+              internaltrigger___to___{{to}}
               @state = State::{{to}}
-              internaltrigger_from_{{from_state}}
+              internaltrigger___from___{{from_state}}
             {% end %}
           end
         {% end %}
       {% else %} 
       @[AlwaysInline]
-        private def internaltransition_{{amethod}}_fromall_to_{{to}}
+        private def internaltransition___{{amethod}}___fromall___to___{{to}}
           {% if block %}
             return unless {{yield}}
           {% else %}
@@ -68,17 +83,17 @@ module CTSM
           {% end %}
           old_state = @state
           @state = State::{{to}}
-          internaltrigger_fromany(old_state)
+          internaltrigger___fromany(old_state)
         end
       {% end %}
     end
 
     macro before(state, &block)
-      {% if @type.methods.map(&.name.stringify).includes? "internaltrigger_to_#{state}" %}
+      {% if @type.methods.map(&.name.stringify).includes? "internaltrigger___to___#{state}" %}
         {% raise "trigger before #{state} is defined more than once" %}
       {% end %}
       @[AlwaysInline]
-      private def internaltrigger_to_{{state}}
+      private def internaltrigger___to___{{state}}
         {% if block %}
           {{yield}}
         {% else %}
@@ -88,11 +103,11 @@ module CTSM
     end
 
     macro after(state, &block)
-      {% if @type.methods.map(&.name).includes? "internaltrigger_from_#{state}" %}
+      {% if @type.methods.map(&.name).includes? "internaltrigger___from___#{state}" %}
         {% raise "trigger after #{state} is defined more than once" %}
       {% end %}
       @[AlwaysInline]
-      private def internaltrigger_from_{{state}}
+      private def internaltrigger___from___{{state}}
         {% if block %}
           {{yield}}
         {% else %}
@@ -117,7 +132,7 @@ module CTSM
       {% triggers_after = {} of String => String %}
       {% initial_state = "" %}
       {% for meth in @type.methods %}
-        {% name_parts = meth.name.split('_') %}
+        {% name_parts = meth.name.split("___") %}
         {% if name_parts[0] == "internaltransition" %}
           {% transitions[name_parts[1]] = true %}
           # internaltransition_method_from_fromstate_to_tostate
@@ -155,17 +170,17 @@ module CTSM
       {% for state in states_found.keys %}
         {% if !triggers_before[state] %}
           @[AlwaysInline]
-          private def internaltrigger_to_{{state.id}}
+          private def internaltrigger___to___{{state.id}}
           end
         {% end %}
         {% if !triggers_after[state] %}
           @[AlwaysInline]
-          private def internaltrigger_from_{{state.id}}
+          private def internaltrigger___from___{{state.id}}
           end
         {% end %}
       {% end %}
       @[AlwaysInline]
-      private def internaltrigger_fromany(old_state)
+      private def internaltrigger___fromany(old_state)
       {% if triggers_after.size == 0 %}
       {% else %}
         case old_state
@@ -205,7 +220,7 @@ module CTSM
         {% list = {} of String => String %}
         {% multi_defined = false %}
         {% for meth in @type.methods %}
-          {% name_parts = meth.name.split('_') %}
+          {% name_parts = meth.name.split("___") %}
           {% if name_parts[0] == "internaltransition" && name_parts[1] == transition %}
             # internaltransition_method_from_fromstate_to_tostate
             # internaltransition_method_fromall_to_tostate
@@ -216,7 +231,7 @@ module CTSM
               {% else %}
                 {% multi_defined = true %}
                 def {{transition.id}}
-                  internaltransition_{{transition.id}}_fromall_to_{{target.id}}
+                  internaltransition___{{transition.id}}___fromall___to___{{target.id}}
                 end
               {% end %}
           {% else %}  

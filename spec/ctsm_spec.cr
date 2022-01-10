@@ -19,6 +19,9 @@ class TestMachine < CTSM::Machine
   transition(wait, WrongCondition, to: Second) # should produce warning
   transition(breaks, First, to: DeadEnd)       # won't produce warning as there is `reset`
 
+  transition(support_underscores1, First, to: First)
+  transition(support_underscores2, First, to: Second)
+
   property count_enters = 0
   property count_leaves = 0
   property from_state = State::Initial
@@ -127,5 +130,12 @@ describe CTSM do
     machine.reset
     machine.count_enters.should eq 2
     machine.count_leaves.should eq 2
+  end
+
+  it "support transitions with underscores" do
+    machine = TestMachine.new
+    machine.startup
+    machine.support_underscores1
+    machine.support_underscores2
   end
 end
