@@ -1,7 +1,7 @@
 # TODO: Write documentation for `Ctsm`
 
 module CTSM
-  PREFIX = "internal"
+  PREFIX = "internalctsmprefix"
 
   class TransitionImpossible < Exception
   end

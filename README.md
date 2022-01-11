@@ -115,11 +115,9 @@ Also, compile-time warning issued in following cases (that most likely means err
 
 This shard involves some macro magic, but this hopefully shouldn't affect compilation performance. According to my benchmark, compilation takes less than 0.05s for a machine with 100 states and 2.5s for (unrealistic) case with 1000 states.
 
-Macroses define couple of `private def`s with names starting from `internal`. If it conflicts with some defined methods, you can change `CTSM::PREFIX` constant
-
 ### Roadmap
 - [ ] flexible order of triggers (entering/leaving/entered/left)
-- [x] configurable prefix instead of `internal` to avoid name conflicts (change CTSM::PREFIX if there is a conflict)
+- [x] configurable prefix instead of `internal` to avoid name conflicts
 - [ ] ability to explicitly define list of states
 
 ## Contributing
