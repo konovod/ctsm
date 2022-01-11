@@ -35,6 +35,16 @@ class TestMachine < CTSM::Machine
     @count_leaves += 1
     @to_state = @state
   end
+
+  # initial_state(Initial2)                  # should be compile-time error
+  # transition(startup, Initial, to: First)  # should be compile-time error
+  # transition(reset, to: First)             # should be compile-time error
+  # before(Second) { }                       # should be compile-time error
+  # after(Second) { }                        # should be compile-time error
+  # transition(startup, Initial, to: Second) # should be compile-time error
+  # transition(startup, to: First)           # should be compile-time error
+  # transition(reset, Second, to: First)     # should be compile-time error
+  # transition(reset, to: Second)            # should be compile-time error
 end
 
 class TestMachine2 < CTSM::Machine

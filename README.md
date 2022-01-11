@@ -103,22 +103,23 @@ TODO - more flexible order
 Compiler will issue an error in following cases:
   1. `initial_state` is not defined
   2. `initial_state` is defined more than once
-  3. `before` is called more than once for same state
-  4. `after` is called more than once for same state
+  3. `before` is defined more than once for same state
+  4. `after` is defined more than once for same state
   5. Same transition is defined from the same state more than once
-  6. Same transition is defined from "any_state" and then defined again
+  6. Same transition is defined more than once and at least one definition is from "any_state"
 Also, compile-time warning issued in following cases (that most likely means error but can also happen while debugging)
   1. There is a state that isn't reachable with any transition
   2. There is a state that has no possible transitions from it (note that any transition from "any_state" disable this warning as technically it can happen from any state).
 
 ## Development
 
-This shard involves some macro magic, but this hopefully shouldn't affect compilation performance.
-Macroses define couple of `private def`s with names starting from `internal`. 
+This shard involves some macro magic, but this hopefully shouldn't affect compilation performance. According to my benchmark, compilation takes less than 0.05s for a machine with 100 states and 2.5s for (unrealistic) case with 1000 states.
+
+Macroses define couple of `private def`s with names starting from `internal`. If it conflicts with some defined methods, you can change `CTSM::PREFIX` constant
 
 ### Roadmap
 - [ ] flexible order of triggers (entering/leaving/entered/left)
-- [ ] configurable prefix instead of `internal` to avoid name conflicts
+- [x] configurable prefix instead of `internal` to avoid name conflicts (change CTSM::PREFIX if there is a conflict)
 - [ ] ability to explicitly define list of states
 
 ## Contributing
